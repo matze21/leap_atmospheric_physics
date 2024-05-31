@@ -1,0 +1,24 @@
+name: leap
+channels:
+  - defaults
+dependencies:
+  - matplotlib
+  - python
+  - tensorflow
+  - pandas
+  - numpy
+  - scipy
+  - plotly
+  - jupyter
+  - scikit-learn
+  - lightgbm
+  - xgboost
+  - statsmodels
+  - seaborn
+  - prophet
+  - dask-expr
+  - dask-glm
+  - dask-ml 
+  - pyarrow
+ 
+
