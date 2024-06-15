@@ -83,3 +83,99 @@ def getTensorDataFlattend(data, partPerLoop, startPartIdx,sampledPartIdx):
 
         xi, yi = True, True
     return X,y, allF, allT
+
+"""
+do not predict the time difference of the variable, but rather the next value, e.g. dTemp / dt -> Temp2 = Temp1 + dTemp/dt *dt
+"""
+def getTensorDataFlattendPredictNextTimeStamp(data, partPerLoop, startPartIdx,sampledPartIdx):
+    dfList = []
+    for j in range(partPerLoop):
+        a = data.get_partition(int(sampledPartIdx[startPartIdx+j])).compute()
+        a, newF = addFeatures(a)
+
+        # transform targets
+        transfTarg = ['ptend_q0001','ptend_q0002','ptend_q0003']
+        transfF0 = ['state_q0001','state_q0002','state_q0003']
+        transfTargList = []
+        colDict={}
+        for ind,f in enumerate(transfTarg):
+            for i in range(60):
+                transfF = f+'_'+str(i)+'_transf'
+                colDict[transfF] = a[transfF0[ind]+'_'+str(i)]+a[f+'_'+str(i)]*1200
+                transfTargList.append(transfF)
+        a = pd.concat([a, pd.DataFrame(colDict)], axis=1)
+
+        allF = features60+newF+feat1
+        dfList.append(a)
+    
+    return pd.concat(dfList), allF, transfTargList
+
+def custom_x_inv(x):
+    return np.nan_to_num(1/(100*x), nan=0.0)
+
+"""
+custom log function to map small values to bigger ones for higher resultion
+"""
+def custom_log(x, minValue, offset=6):  #offset of works for [-403:403] of x values otherwise sign is lost
+    modMin = -minValue #* 0.9
+    x[x==0] = modMin # will make problems bc 0 could be positive but also negative! dynamics will point in different directions
+    y = np.log(abs(x))
+    #y[x==0] = -1e50  #replace infinities with 0 -> problem, can't learn that after very small x = large y, there should be 0 -> need a different mapping
+    y = y - offset           #move curve down such that we have a bigger domain that always has negative values as an outcome [-403:403]
+    y = np.sign(x)*abs(y)    #return sign information
+
+    y = y + abs(np.log((abs(modMin))))
+    return y
+
+"""
+inverse custom log function to map small values to bigger ones for higher resultion
+"""
+def inv_custom_log(y,minValue, offset=6):
+    modMin = -minValue #* 0.9
+    y = y - abs(np.log((abs(modMin))))
+    x = np.exp(-abs(y) + offset)
+    #x[y == 1e-100] = 0       # not needed since
+    x = np.sign(y)*x
+    x[x== modMin] = 0
+    return x
+
+"""
+get data with mapped targets
+"""
+def getTensorDataFlattendPredictLog(data, partPerLoop, startPartIdx,sampledPartIdx):
+    dfList = []
+    for j in range(partPerLoop):
+        a = data.get_partition(int(sampledPartIdx[startPartIdx+j])).compute()
+        a, newF = addFeatures(a)
+
+        # transform targets
+        transfTarg = ['ptend_q0001','ptend_q0002']#['ptend_q0001','ptend_q0002','ptend_q0003']
+        transfTargList = []
+        colDict={}
+        for ind,f in enumerate(transfTarg):
+            for i in [26]: #range(60):
+                feature = f+'_'+str(i)
+                transfF = feature+'_transf'
+                minValue = minDict[feature]['min']
+                colDict[transfF] = custom_log(a[feature].copy(), minValue=minValue)
+                transfTargList.append(transfF)
+        a = pd.concat([a, pd.DataFrame(colDict)], axis=1)
+
+        allF = features60+newF+feat1
+        dfList.append(a)
+    
+    return pd.concat(dfList), allF, transfTargList
+
+"""
+basic concatenation function that adds features as well
+"""
+def concatData(data, partPerLoop, startPartIdx,sampledPartIdx):
+    dfList = []
+    for j in range(partPerLoop):
+        a = data.get_partition(int(sampledPartIdx[startPartIdx+j])).compute()
+        a, newF = addFeatures(a)
+
+        allF = features60+newF+feat1
+        dfList.append(a)
+    
+    return pd.concat(dfList), allF, allF
