@@ -20,7 +20,7 @@ for f in target60:
 allT = targets60 + target1
 
 targetsToDrop12 = [ 'ptend_q0001', 'ptend_q0002', 'ptend_q0003', 'ptend_u', 'ptend_v']
-dropT = ['ptend_q0002_12','ptend_q0002_13','ptend_q0002_14'] # attention, I think i also need to predict _15
+dropT = [] #'ptend_q0002_12','ptend_q0002_13','ptend_q0002_14'] # attention, I think i also need to predict _15
 for f in targetsToDrop12:
     dropT = dropT + [f+'_'+str(i) for i in range(12)]
 

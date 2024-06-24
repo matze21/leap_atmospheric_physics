@@ -20,5 +20,6 @@ dependencies:
   - dask-glm
   - dask-ml 
   - pyarrow
+  - graphviz
  
 

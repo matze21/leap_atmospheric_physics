@@ -1,2 +1,7 @@
 *.parquet
 *.jpg
+*.txt
+*.csv
+*.pkl
+*.svg
+*.pyc
