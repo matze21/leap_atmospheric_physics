@@ -140,6 +140,34 @@ def inv_custom_log(y,minValue, offset=6):
     return x
 
 """
+custom log function to map into a continuous region, gives more resolution to the small values
+"""
+def custom_log_2(x, minValue, offset=6, nullValFactor=0.99):  #offset of works for [-403:403] of x values otherwise sign is lost
+    nullValueFeat = -minValue*nullValFactor             # define the 0-value in the feature space
+    x[x==0] = nullValueFeat                             # will make problems bc 0 could be positive but also negative! dynamics will point in different directions
+    y = np.log(abs(x))
+    y = y - offset                                      #move curve down such that we have a bigger domain that always has negative values as an outcome [-403:403]
+    nullValueLog = np.log(abs(nullValueFeat)) - offset  # transform 0-value into log space
+    y[x>0] = nullValueLog - (y[x>0] - nullValueLog)
+
+    return y
+
+"""
+inverse custom log function to map into a continuous region, gives more resolution to the small values
+"""
+def inv_custom_log_2(y,minValue, offset=6, nullValFactor=0.99):
+    nullValueFeat = -minValue*nullValFactor
+    nullValueLog  = np.log(abs(nullValueFeat)) - offset 
+
+    x = y.copy()
+    x[y<nullValueLog] = nullValueLog - (x[y<nullValueLog] - nullValueLog) # remap to log function
+    x = x + offset                                                        # add offset
+    x = np.exp(x)                                                         # apply exp funciton (all pos values aftewards)
+    x[x<nullValueFeat] = 0                                                # map to 0
+    x[y>nullValueLog] = -x[y>nullValueLog]                                # find negative values
+    return x
+
+"""
 get data with mapped targets
 """
 def getTensorDataFlattendPredictLog(data, partPerLoop, startPartIdx,sampledPartIdx):
